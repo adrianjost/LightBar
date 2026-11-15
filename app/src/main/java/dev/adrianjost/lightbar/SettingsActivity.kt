@@ -353,8 +353,9 @@ class SettingsActivity : ComponentActivity(), HaClient.Listener {
                             "Up / Down: brightness or warmth\n" +
                             "OK or Back: done\n\n" +
                             "Updates\n\n" +
-                            "Live suits normal lights. Pick a slower rate for devices that cannot take " +
-                            "frequent changes; the last value is always sent."
+                            "Live suits normal lights. For devices that cannot take frequent changes, " +
+                            "pick After …: the value is sent once it has rested that long, or at once " +
+                            "when you confirm with OK or close the overlay."
                     )
                 }
             }

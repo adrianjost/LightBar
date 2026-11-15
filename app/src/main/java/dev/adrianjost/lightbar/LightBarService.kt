@@ -46,6 +46,7 @@ class LightBarService : AccessibilityService(), HaClient.Listener {
     private val lockedUntil = HashMap<String, Long>()
     /** Lights with a changed value that is waiting for its next allowed send slot. */
     private val pendingSends = HashMap<String, Param>()
+    private val sendTimers = HashMap<String, Runnable>()
 
     private var overlay: View? = null
     private var overlayOwner: OverlayLifecycleOwner? = null
@@ -223,6 +224,7 @@ class LightBarService : AccessibilityService(), HaClient.Listener {
 
     private fun leaveControl() {
         stopHold()
+        flushSends()
         ui.controlling = false
         ui.param = Param.BRIGHTNESS
     }
@@ -266,20 +268,34 @@ class LightBarService : AccessibilityService(), HaClient.Listener {
     }
 
     /**
-     * Sends the light's current value as soon as its update rate allows: right away if the last
-     * command is old enough, otherwise when the interval has passed. Values changed in between
-     * are skipped, only the latest one goes out, also after the key is released or the overlay closed.
+     * Schedules sending the light's current value, depending on its update setting:
+     *  - live: right away if the last command is old enough, otherwise once the interval has passed;
+     *  - settled: only after the value has not changed for the chosen time, so the device gets
+     *    one command. Confirming with OK/Back or closing the overlay sends it at once ([flushSends]).
      */
     private fun queueSend(id: String, param: Param) {
-        val waiting = id in pendingSends
+        val live = UPDATE_RATES[0].first
+        val interval = refs.firstOrNull { it.id == id }?.intervalMs ?: live
         pendingSends[id] = param
-        if (waiting) return
-        val interval = refs.firstOrNull { it.id == id }?.intervalMs ?: UPDATE_RATES[0].first
-        val wait = (lastSend[id] ?: 0) + interval - SystemClock.uptimeMillis()
-        handler.postDelayed({ send(id) }, wait.coerceAtLeast(0))
+        val wait = if (interval <= live) {
+            if (id in sendTimers) return
+            (lastSend[id] ?: 0) + interval - SystemClock.uptimeMillis()
+        } else {
+            sendTimers.remove(id)?.let { handler.removeCallbacks(it) }
+            interval.toLong()
+        }
+        val timer = Runnable { send(id) }
+        sendTimers[id] = timer
+        handler.postDelayed(timer, wait.coerceAtLeast(0))
+    }
+
+    /** Sends every value that is still waiting, without waiting any longer. */
+    private fun flushSends() {
+        pendingSends.keys.toList().forEach { send(it) }
     }
 
     private fun send(id: String) {
+        sendTimers.remove(id)?.let { handler.removeCallbacks(it) }
         val param = pendingSends.remove(id) ?: return
         val ha = client ?: return
         val light = ui.lights.firstOrNull { it.id == id } ?: return
@@ -301,6 +317,7 @@ class LightBarService : AccessibilityService(), HaClient.Listener {
         val light = selectedLight() ?: return
         if (!light.available) return
         pendingSends.remove(light.id)
+        sendTimers.remove(light.id)?.let { handler.removeCallbacks(it) }
         val on = !light.on
         // Until Home Assistant reports the real level, show a freshly switched-on light as full.
         ui.lights[ui.selected] = light.copy(on = on, brightness = if (on && light.brightness == 0f) 1f else light.brightness)
@@ -394,6 +411,7 @@ class LightBarService : AccessibilityService(), HaClient.Listener {
         if (overlay == null || hiding) return
         hiding = true
         stopHold()
+        flushSends()
         handler.removeCallbacks(autoHide)
         handler.removeCallbacks(okHold)
         ui.shown.targetState = false

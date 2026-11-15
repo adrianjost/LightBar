@@ -18,13 +18,17 @@ enum class Gesture(val label: String) { PRESS("Single press"), DOUBLE("Double pr
 
 enum class Param { BRIGHTNESS, WARMTH }
 
-/** How often a light may receive commands while its slider is being moved. */
-val UPDATE_RATES = listOf(200 to "Live", 1000 to "Every 1 s", 3000 to "Every 3 s")
+/**
+ * When a light receives commands while its slider is being moved. The first entry is live
+ * (rate-limited to one command per interval); the others wait until the value has not changed
+ * for that long, so slow devices get a single command.
+ */
+val UPDATE_RATES = listOf(200 to "Live", 500 to "After 0.5 s", 1000 to "After 1 s", 3000 to "After 3 s")
 
 /**
  * A light the user picked in settings.
  * @property name short display name, editable from the phone setup page
- * @property intervalMs minimum time between two commands to this light, for slow devices
+ * @property intervalMs one of [UPDATE_RATES]: live rate limit, or how long the value must rest before it is sent
  */
 data class LightRef(val id: String, val name: String, val intervalMs: Int = UPDATE_RATES[0].first)
 
