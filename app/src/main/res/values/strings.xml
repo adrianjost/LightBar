@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">LightBar</string>
+    <string name="toggle_label">Toggle LightBar</string>
     <string name="accessibility_description">Listens for one remote button to open the LightBar overlay and reads D-Pad presses while the overlay is visible. No screen content is read.</string>
 </resources>

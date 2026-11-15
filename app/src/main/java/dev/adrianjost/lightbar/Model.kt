@@ -150,10 +150,12 @@ class Prefs(context: Context) {
         get() = sp.getInt("autoClose", 10)
         set(v) = sp.edit().putInt("autoClose", v).apply()
 
-    /** Android key code of the remote button that opens the overlay, 0 if unset. */
-    var triggerKey: Int
-        get() = sp.getInt("triggerKey", 0)
-        set(v) = sp.edit().putInt("triggerKey", v).apply()
+    /** Android key codes of the remote buttons that open the overlay, in the order they were added. */
+    var triggerKeys: List<Int>
+        get() = sp.getString("triggerKeys", null)?.split(',')?.mapNotNull { it.toIntOrNull() }
+            // Earlier versions stored a single key.
+            ?: listOf(sp.getInt("triggerKey", 0)).filter { it != 0 }
+        set(v) = sp.edit().putString("triggerKeys", v.distinct().joinToString(",")).apply()
 
     var gesture: Gesture
         get() = Gesture.entries.getOrElse(sp.getInt("gesture", Gesture.HOLD.ordinal)) { Gesture.HOLD }

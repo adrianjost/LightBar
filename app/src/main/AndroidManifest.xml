@@ -24,6 +24,22 @@
             </intent-filter>
         </activity>
 
+        <!-- Lets button-mapping apps toggle the overlay by launching an activity. -->
+        <activity
+            android:name=".ToggleActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:label="@string/toggle_label"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.NoDisplay">
+            <!-- Makes "Toggle LightBar" appear in the Shortcuts list of button-mapping apps. -->
+            <intent-filter>
+                <action android:name="android.intent.action.CREATE_SHORTCUT" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <service
             android:name=".LightBarService"
             android:exported="false"

@@ -30,8 +30,18 @@ The overlay closes by itself after 10 seconds without input (configurable under 
 3. **Accessibility service**: enable LightBar. If your TV hides that settings page, use
    `adb shell settings put secure enabled_accessibility_services dev.adrianjost.lightbar/dev.adrianjost.lightbar.LightBarService`
    followed by `adb shell settings put secure accessibility_enabled 1`.
-4. **Trigger button** and **gesture**: pick the remote button that opens the overlay. With *Single press* the button is taken over completely; with *Double press* and *Long press* the app underneath still sees the key.
+4. **Trigger buttons** and **gesture**: add one or more remote buttons that open the overlay (useful with several remotes). With *Single press* the button is taken over completely; with *Double press* and *Long press* the app underneath still sees the key.
 5. Under **Appearance** pick the **position** (any corner or edge centre), the **card style** (wide rows or compact square cards), the **cards per row** (1, 2, 3 or all; for example Wide with 1 is a stacked list, Square with 2 a two-column grid, Square with All a single strip) and the gap from the screen edge. Then add your **lights**. Each shown light has its own buttons: **Move** (OK to pick it up, Up/Down to carry it, OK to drop), **Updates** (Live sends while you slide; After 0.5 s / 1 s / 3 s waits until the value has rested that long, or until you confirm with OK or close the overlay; two commands to a light are never closer together than that time, the last one is delayed if needed) and **Remove**.
+
+## Triggering from other apps
+
+Instead of (or in addition to) LightBar's own trigger buttons, a button-mapping app such as Button Mapper can show or hide the overlay. The accessibility service must be enabled either way.
+
+- **Broadcast** (preferred, does not disturb the app in the foreground): action `dev.adrianjost.lightbar.TOGGLE`. From a shell: `adb shell am broadcast -a dev.adrianjost.lightbar.TOGGLE`
+- **Shortcut** (easiest in Button Mapper): pick the action type *Shortcuts* and choose **Toggle LightBar**. Nothing to type.
+- **Activity**: launch `dev.adrianjost.lightbar/.ToggleActivity` ("Toggle LightBar") directly.
+
+The shortcut and the activity are invisible and close at once, but starting an activity can briefly interrupt the foreground app; the broadcast does not.
 
 ## Build
 

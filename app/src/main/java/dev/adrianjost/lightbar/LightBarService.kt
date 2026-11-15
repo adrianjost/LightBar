@@ -1,7 +1,12 @@
 package dev.adrianjost.lightbar
 
 import android.accessibilityservice.AccessibilityService
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.PixelFormat
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -57,6 +62,14 @@ class LightBarService : AccessibilityService(), HaClient.Listener {
     /** When we last sent a slider value for a light / last heard about it (uptime millis). */
     private val lastSend = HashMap<String, Long>()
     private val stateTime = HashMap<String, Long>()
+    /** Copy of the trigger buttons from settings, refreshed whenever the settings screen changes them. */
+    private var triggerKeys: Set<Int> = emptySet()
+
+    /** Lets other apps (e.g. Button Mapper) toggle the overlay with a broadcast. */
+    private val toggleReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) = toggle()
+    }
+
     /** Navigation keys whose key-down the overlay consumed and that have not been released yet. */
     private val ownedKeys = HashSet<Int>()
     /** Key that was just recorded as trigger; its remaining events are swallowed until release. */
@@ -84,11 +97,24 @@ class LightBarService : AccessibilityService(), HaClient.Listener {
 
     override fun onServiceConnected() {
         prefs = Prefs(this)
+        triggerKeys = prefs.triggerKeys.toSet()
         instance = this
+        val filter = IntentFilter(ACTION_TOGGLE)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(toggleReceiver, filter, Context.RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(toggleReceiver, filter)
+        }
+    }
+
+    /** Called by the settings screen after the trigger buttons were edited. */
+    fun reloadTriggerKeys() {
+        triggerKeys = prefs.triggerKeys.toSet()
     }
 
     override fun onDestroy() {
         instance = null
+        runCatching { unregisterReceiver(toggleReceiver) }
         handler.removeCallbacksAndMessages(null)
         removeOverlayNow()
         client?.close()
@@ -131,7 +157,7 @@ class LightBarService : AccessibilityService(), HaClient.Listener {
             if (event.action == KeyEvent.ACTION_UP) ownedKeys.remove(code)
             return true
         }
-        if (code != 0 && code == prefs.triggerKey) return handleTrigger(event)
+        if (code in triggerKeys) return handleTrigger(event)
         if (visible && event.action == KeyEvent.ACTION_DOWN && code == KeyEvent.KEYCODE_HOME) hide()
         return false
     }
@@ -515,6 +541,9 @@ class LightBarService : AccessibilityService(), HaClient.Listener {
     }
 
     companion object {
+        /** Broadcast action that shows or hides the overlay. */
+        const val ACTION_TOGGLE = "dev.adrianjost.lightbar.TOGGLE"
+
         /** Set while the service is enabled, so the settings screen can show a preview. */
         var instance: LightBarService? = null
             private set

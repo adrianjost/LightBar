@@ -80,7 +80,7 @@ class SettingsActivity : ComponentActivity(), HaClient.Listener {
     private var edgeGap by mutableIntStateOf(24)
     private var autoClose by mutableIntStateOf(10)
     private var gesture by mutableStateOf(Gesture.HOLD)
-    private var triggerKey by mutableIntStateOf(0)
+    private val triggerKeys = mutableStateListOf<Int>()
     private var capturing by mutableStateOf(false)
     private var captureHint by mutableStateOf("")
     private var serviceEnabled by mutableStateOf(false)
@@ -103,7 +103,7 @@ class SettingsActivity : ComponentActivity(), HaClient.Listener {
         edgeGap = prefs.edgeGap
         autoClose = prefs.autoCloseSeconds
         gesture = prefs.gesture
-        triggerKey = prefs.triggerKey
+        triggerKeys.addAll(prefs.triggerKeys)
         setContent { Screen() }
     }
 
@@ -214,9 +214,19 @@ class SettingsActivity : ComponentActivity(), HaClient.Listener {
     }
 
     private fun saveTrigger(code: Int) {
-        triggerKey = code
-        prefs.triggerKey = code
+        if (code !in triggerKeys) triggerKeys.add(code)
+        storeTriggers()
         stopCapture()
+    }
+
+    private fun removeTrigger(code: Int) {
+        triggerKeys.remove(code)
+        storeTriggers()
+    }
+
+    private fun storeTriggers() {
+        prefs.triggerKeys = triggerKeys.toList()
+        LightBarService.instance?.reloadTriggerKeys()
     }
 
     /** Fallback while the accessibility service is off, and handling of Back / navigation keys. */
@@ -287,17 +297,13 @@ class SettingsActivity : ComponentActivity(), HaClient.Listener {
                     "Accessibility service",
                     if (serviceEnabled) "Enabled" else "Off. LightBar needs it to see your remote button. Press OK to open settings.",
                 ) { openAccessibilitySettings() }
-                Item(
-                    "Trigger button",
-                    when {
-                        capturing -> captureHint
-                        triggerKey == 0 -> "Not set. Press OK, then the remote button you want to use."
-                        else -> KeyEvent.keyCodeToString(triggerKey).removePrefix("KEYCODE_")
-                    },
-                ) { startCapture() }
-                Choice("Trigger gesture", Gesture.entries.map { it.label }, gesture.ordinal) {
-                    gesture = Gesture.entries[it]
-                    prefs.gesture = gesture
+                TriggerButtons()
+                // The gesture only applies to LightBar's own trigger buttons.
+                if (triggerKeys.isNotEmpty()) {
+                    Choice("Trigger gesture", Gesture.entries.map { it.label }, gesture.ordinal) {
+                        gesture = Gesture.entries[it]
+                        prefs.gesture = gesture
+                    }
                 }
                 Item("Preview", if (serviceEnabled) "Show or hide the overlay now" else "Enable the accessibility service first") {
                     LightBarService.instance?.toggle()
@@ -356,6 +362,9 @@ class SettingsActivity : ComponentActivity(), HaClient.Listener {
                             "Left / Right: tap for 1 %, hold to sweep\n" +
                             "Up / Down: brightness or warmth\n" +
                             "OK or Back: done\n\n" +
+                            "Other apps\n\n" +
+                            "Button Mapper and similar apps can open the overlay with the broadcast " +
+                            "dev.adrianjost.lightbar.TOGGLE or the shortcut Toggle LightBar.\n\n" +
                             "Updates\n\n" +
                             "Live suits normal lights. For devices that cannot take frequent changes, " +
                             "pick After …: the value is sent once it has rested that long, or earlier " +
@@ -419,6 +428,47 @@ class SettingsActivity : ComponentActivity(), HaClient.Listener {
             Pressable(onClick = { saveLights(selected.filter { it.id != ref.id }) }, radius = 12.dp) {
                 Icon(R.drawable.ic_delete)
                 Label("Remove", 13.sp, Color.White, Modifier.padding(start = 6.dp))
+            }
+        }
+    }
+
+    /** The remote buttons that open the overlay: one removable chip per button, plus Add. */
+    @Composable
+    private fun TriggerButtons() {
+        val shape = RoundedCornerShape(16.dp)
+        Row(
+            modifier = Modifier
+                .padding(vertical = 4.dp)
+                .fillMaxWidth()
+                .clip(shape)
+                .background(Color.White.copy(alpha = 0.06f))
+                .padding(start = 20.dp, end = 10.dp, top = 9.dp, bottom = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Column(Modifier.weight(1f)) {
+                Label("Trigger buttons", 16.sp, Color.White, weight = FontWeight.Medium)
+                Label(
+                    when {
+                        capturing -> captureHint
+                        triggerKeys.isEmpty() -> "None yet. Add the remote button that should open the overlay."
+                        else -> "Any of these opens the overlay. OK on a button removes it."
+                    },
+                    12.sp, Color.White.copy(alpha = 0.6f),
+                )
+            }
+            triggerKeys.toList().forEach { code ->
+                key(code) {
+                    Pressable(onClick = { removeTrigger(code) }, radius = 12.dp) {
+                        Label(KeyEvent.keyCodeToString(code).removePrefix("KEYCODE_"), 13.sp, Color.White)
+                        Spacer(Modifier.width(6.dp))
+                        Icon(R.drawable.ic_delete)
+                    }
+                }
+            }
+            Pressable(onClick = { startCapture() }, radius = 12.dp, highlighted = capturing) {
+                Icon(R.drawable.ic_add)
+                Label("Add", 13.sp, Color.White, Modifier.padding(start = 6.dp))
             }
         }
     }
