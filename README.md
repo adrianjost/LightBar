@@ -2,6 +2,8 @@
 
 A small Android TV / Google TV overlay for dimming a handful of Home Assistant lights with the D-Pad of your remote, without leaving what you are watching.
 
+![LightBar overlay on a Google TV Streamer](docs/overlay.png)
+
 LightBar is a heavily reduced fork of [QuickBars for Home Assistant](https://github.com/Trooped/QuickBars) by Trooped. It keeps the idea (an accessibility-service overlay talking to Home Assistant over WebSocket) and drops everything else: other entity types, multiple bars, camera PiP, notifications, backups, in-app purchases. It uses its own application ID (`dev.adrianjost.lightbar`), so it installs next to QuickBars.
 
 ## Controls
