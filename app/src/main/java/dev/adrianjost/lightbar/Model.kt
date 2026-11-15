@@ -5,11 +5,21 @@ import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.math.roundToInt
 
-// New entries go at the end: the ordinal is what gets stored.
-enum class BarLayout(val label: String) { SIDEBAR("Right sidebar"), BOTTOM("Bottom bar"), LEFT_SIDEBAR("Left sidebar") }
+/**
+ * Where the panel sits on screen: the four corners and the four edge centres.
+ * [col] and [row] are 0..2 in a 3x3 grid whose middle cell is unused.
+ */
+enum class Anchor(val label: String, val col: Int, val row: Int) {
+    TOP_LEFT("Top left", 0, 0), TOP("Top", 1, 0), TOP_RIGHT("Top right", 2, 0),
+    LEFT("Left", 0, 1), RIGHT("Right", 2, 1),
+    BOTTOM_LEFT("Bottom left", 0, 2), BOTTOM("Bottom", 1, 2), BOTTOM_RIGHT("Bottom right", 2, 2),
+}
 
-/** Where the panel sits along its screen edge: top/centre/bottom for the sidebar, left/centre/right for the bottom bar. */
-enum class BarAlign { START, CENTER, END }
+/** Shape of one light tile: a wide row or a compact, roughly square card. */
+enum class CardStyle(val label: String) { WIDE("Wide"), SQUARE("Square") }
+
+/** How many tiles sit next to each other before a new row starts; 0 puts all of them in one row. */
+val PER_ROW = listOf(1 to "1", 2 to "2", 3 to "3", 0 to "All")
 
 /** Distance between the panel and the screen edge, in dp. */
 val EDGE_GAPS = listOf(0 to "None", 12 to "Small", 24 to "Medium", 48 to "Large")
@@ -107,13 +117,30 @@ class Prefs(context: Context) {
         get() = sp.getString("token", "").orEmpty()
         set(v) = sp.edit().putString("token", v.trim()).apply()
 
-    var layout: BarLayout
-        get() = BarLayout.entries.getOrElse(sp.getInt("layout", 0)) { BarLayout.SIDEBAR }
-        set(v) = sp.edit().putInt("layout", v.ordinal).apply()
+    // Earlier versions stored an edge ("layout": 0 right, 1 bottom, 2 left, 3 top) and a position
+    // along it ("align": 0 start, 1 centre, 2 end). They only serve as defaults for the settings below.
+    private val legacyEdge get() = sp.getInt("layout", 0)
+    private val legacyStacked get() = legacyEdge == 0 || legacyEdge == 2
 
-    var align: BarAlign
-        get() = BarAlign.entries.getOrElse(sp.getInt("align", BarAlign.CENTER.ordinal)) { BarAlign.CENTER }
-        set(v) = sp.edit().putInt("align", v.ordinal).apply()
+    var anchor: Anchor
+        get() = sp.getString("anchor", null)?.let { name -> Anchor.entries.firstOrNull { it.name == name } }
+            ?: when (legacyEdge) {
+                1 -> listOf(Anchor.BOTTOM_LEFT, Anchor.BOTTOM, Anchor.BOTTOM_RIGHT)
+                2 -> listOf(Anchor.TOP_LEFT, Anchor.LEFT, Anchor.BOTTOM_LEFT)
+                3 -> listOf(Anchor.TOP_LEFT, Anchor.TOP, Anchor.TOP_RIGHT)
+                else -> listOf(Anchor.TOP_RIGHT, Anchor.RIGHT, Anchor.BOTTOM_RIGHT)
+            }.getOrElse(sp.getInt("align", 1)) { Anchor.RIGHT }
+        set(v) = sp.edit().putString("anchor", v.name).apply()
+
+    var cardStyle: CardStyle
+        get() = CardStyle.entries.getOrNull(sp.getInt("cardStyle", -1))
+            ?: if (legacyStacked) CardStyle.WIDE else CardStyle.SQUARE
+        set(v) = sp.edit().putInt("cardStyle", v.ordinal).apply()
+
+    /** One of [PER_ROW]. */
+    var perRow: Int
+        get() = sp.getInt("perRow", if (legacyStacked) 1 else 0)
+        set(v) = sp.edit().putInt("perRow", v).apply()
 
     var edgeGap: Int
         get() = sp.getInt("edgeGap", 24)

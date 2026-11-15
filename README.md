@@ -12,9 +12,9 @@ Press your trigger button to open the overlay.
 
 | Mode | Key | Action |
 | --- | --- | --- |
-| Browse | D-Pad | Choose a light (Up/Down in the sidebar, Left/Right in the bottom bar) |
+| Browse | D-Pad | Move between the light tiles |
 | Browse | OK | Adjust the selected light |
-| Browse | Left/Right (sidebar only) | Shortcut: start adjusting brightness right away |
+| Browse | Left/Right (with 1 card per row) | Shortcut: start adjusting brightness right away |
 | Adjust | Left/Right | Tap: 1 % steps. Hold: keeps going, slow at the low end and fast higher up, stops at 1 % |
 | Adjust | Up/Down | Switch between brightness and warmth (if the light supports color temperature) |
 | Adjust | OK or Back | Done, back to choosing a light |
@@ -31,7 +31,7 @@ The overlay closes by itself after 10 seconds without input (configurable under 
    `adb shell settings put secure enabled_accessibility_services dev.adrianjost.lightbar/dev.adrianjost.lightbar.LightBarService`
    followed by `adb shell settings put secure accessibility_enabled 1`.
 4. **Trigger button** and **gesture**: pick the remote button that opens the overlay. With *Single press* the button is taken over completely; with *Double press* and *Long press* the app underneath still sees the key.
-5. Under **Appearance** pick the layout (right sidebar, left sidebar or bottom bar with compact cards), its position along that edge and the gap from the screen edge. Then add your **lights**. Each shown light has its own buttons: **Move** (OK to pick it up, Up/Down to carry it, OK to drop), **Updates** (Live sends while you slide; After 0.5 s / 1 s / 3 s waits until the value has rested that long, or until you confirm with OK or close the overlay; two commands to a light are never closer together than that time, the last one is delayed if needed) and **Remove**.
+5. Under **Appearance** pick the **position** (any corner or edge centre), the **card style** (wide rows or compact square cards), the **cards per row** (1, 2, 3 or all; for example Wide with 1 is a stacked list, Square with 2 a two-column grid, Square with All a single strip) and the gap from the screen edge. Then add your **lights**. Each shown light has its own buttons: **Move** (OK to pick it up, Up/Down to carry it, OK to drop), **Updates** (Live sends while you slide; After 0.5 s / 1 s / 3 s waits until the value has rested that long, or until you confirm with OK or close the overlay; two commands to a light are never closer together than that time, the last one is delayed if needed) and **Remove**.
 
 ## Build
 

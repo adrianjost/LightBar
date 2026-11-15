@@ -74,8 +74,9 @@ class SettingsActivity : ComponentActivity(), HaClient.Listener {
     private var status by mutableStateOf("Not connected yet")
     private val allLights = mutableStateListOf<LightRef>()
     private val selected = mutableStateListOf<LightRef>()
-    private var layout by mutableStateOf(BarLayout.SIDEBAR)
-    private var align by mutableStateOf(BarAlign.CENTER)
+    private var anchor by mutableStateOf(Anchor.RIGHT)
+    private var cardStyle by mutableStateOf(CardStyle.WIDE)
+    private var perRow by mutableIntStateOf(1)
     private var edgeGap by mutableIntStateOf(24)
     private var autoClose by mutableIntStateOf(10)
     private var gesture by mutableStateOf(Gesture.HOLD)
@@ -96,8 +97,9 @@ class SettingsActivity : ComponentActivity(), HaClient.Listener {
         super.onCreate(savedInstanceState)
         prefs = Prefs(this)
         selected.addAll(prefs.lights)
-        layout = prefs.layout
-        align = prefs.align
+        anchor = prefs.anchor
+        cardStyle = prefs.cardStyle
+        perRow = prefs.perRow
         edgeGap = prefs.edgeGap
         autoClose = prefs.autoCloseSeconds
         gesture = prefs.gesture
@@ -302,19 +304,14 @@ class SettingsActivity : ComponentActivity(), HaClient.Listener {
                 }
 
                 Section("Appearance")
-                // Shown in reading direction, which differs from the stored enum order.
-                val layouts = listOf(BarLayout.LEFT_SIDEBAR, BarLayout.BOTTOM, BarLayout.SIDEBAR)
-                Choice("Layout", layouts.map { it.label }, layouts.indexOf(layout)) {
-                    layout = layouts[it]
-                    prefs.layout = layout
+                PositionPicker()
+                Choice("Card style", CardStyle.entries.map { it.label }, cardStyle.ordinal) {
+                    cardStyle = CardStyle.entries[it]
+                    prefs.cardStyle = cardStyle
                 }
-                Choice(
-                    "Position",
-                    if (layout != BarLayout.BOTTOM) listOf("Top", "Center", "Bottom") else listOf("Left", "Center", "Right"),
-                    align.ordinal,
-                ) {
-                    align = BarAlign.entries[it]
-                    prefs.align = align
+                Choice("Cards per row", PER_ROW.map { it.second }, PER_ROW.indexOfFirst { it.first == perRow }) {
+                    perRow = PER_ROW[it].first
+                    prefs.perRow = perRow
                 }
                 Choice("Gap from screen edge", EDGE_GAPS.map { it.second }, EDGE_GAPS.indexOfFirst { it.first == edgeGap }) {
                     edgeGap = EDGE_GAPS[it].first
@@ -422,6 +419,67 @@ class SettingsActivity : ComponentActivity(), HaClient.Listener {
             Pressable(onClick = { saveLights(selected.filter { it.id != ref.id }) }, radius = 12.dp) {
                 Icon(R.drawable.ic_delete)
                 Label("Remove", 13.sp, Color.White, Modifier.padding(start = 6.dp))
+            }
+        }
+    }
+
+    /**
+     * Picks one of the eight places the panel can sit, on a small picture of the screen:
+     * the D-Pad moves between the dots, OK picks one.
+     */
+    @Composable
+    private fun PositionPicker() {
+        val shape = RoundedCornerShape(16.dp)
+        Row(
+            modifier = Modifier
+                .padding(vertical = 4.dp)
+                .fillMaxWidth()
+                .clip(shape)
+                .background(Color.White.copy(alpha = 0.06f))
+                .padding(start = 20.dp, end = 10.dp, top = 9.dp, bottom = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Label("Position", 16.sp, Color.White, weight = FontWeight.Medium)
+                Label(anchor.label, 12.sp, Color.White.copy(alpha = 0.6f))
+            }
+            val screen = RoundedCornerShape(10.dp)
+            Column(Modifier.border(1.dp, Color.White.copy(alpha = 0.35f), screen).padding(3.dp)) {
+                for (row in 0..2) {
+                    Row {
+                        for (col in 0..2) {
+                            val spot = Anchor.entries.firstOrNull { it.col == col && it.row == row }
+                            if (spot == null) {
+                                Spacer(Modifier.size(width = 44.dp, height = 26.dp))
+                                continue
+                            }
+                            val picked = spot == anchor
+                            var focused by remember { mutableStateOf(false) }
+                            val outline by animateColorAsState(
+                                if (focused) Color.White else Color.Transparent, tween(60), label = "outline",
+                            )
+                            Row(
+                                Modifier
+                                    .size(width = 44.dp, height = 26.dp)
+                                    .border(2.dp, outline, RoundedCornerShape(8.dp))
+                                    .onFocusChanged { focused = it.isFocused }
+                                    .clickable(remember { MutableInteractionSource() }, indication = null) {
+                                        anchor = spot
+                                        prefs.anchor = spot
+                                    },
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Spacer(
+                                    Modifier
+                                        .size(width = if (picked) 22.dp else 10.dp, height = if (picked) 12.dp else 6.dp)
+                                        .clip(RoundedCornerShape(3.dp))
+                                        .background(Color.White.copy(alpha = if (picked) 1f else 0.35f))
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }

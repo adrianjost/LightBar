@@ -26,7 +26,7 @@ import kotlin.math.roundToInt
  * and translates D-Pad presses into Home Assistant light commands.
  *
  * Keys while the overlay is open:
- *  - browse:  D-Pad picks a light, OK enters control mode, Back closes.
+ *  - browse:  D-Pad moves between the light tiles, OK enters control mode, Back closes.
  *  - control: Left/Right adjusts (hold to keep going), Up/Down switches brightness/warmth, OK or Back confirms.
  *  - holding OK toggles the selected light in both modes.
  */
@@ -155,7 +155,6 @@ class LightBarService : AccessibilityService(), HaClient.Listener {
         scheduleAutoHide()
         val down = event.action == KeyEvent.ACTION_DOWN
         val first = down && event.repeatCount == 0
-        val sidebar = ui.layout != BarLayout.BOTTOM
 
         when (event.keyCode) {
             KeyEvent.KEYCODE_BACK -> if (first) {
@@ -185,8 +184,8 @@ class LightBarService : AccessibilityService(), HaClient.Listener {
                     !down -> if (dir == holdDir) stopHold()
                     !first -> Unit
                     ui.controlling -> startHold(dir)
-                    !sidebar -> moveSelection(dir)
-                    // Sidebar shortcut: Left/Right is unused while browsing, so adjust straight away.
+                    ui.columns > 1 -> moveSelection(dir, 0)
+                    // Single column: Left/Right is unused while browsing, so adjust straight away.
                     ui.message == null && ui.lights.isNotEmpty() -> {
                         ui.param = Param.BRIGHTNESS
                         ui.controlling = true
@@ -201,15 +200,33 @@ class LightBarService : AccessibilityService(), HaClient.Listener {
                     ui.controlling -> if (first && selectedLight()?.supportsTemp == true) {
                         ui.param = if (ui.param == Param.BRIGHTNESS) Param.WARMTH else Param.BRIGHTNESS
                     }
-                    sidebar -> moveSelection(dir)
+                    else -> moveSelection(0, dir)
                 }
             }
         }
     }
 
-    private fun moveSelection(dir: Int) {
-        if (ui.lights.isEmpty()) return
-        ui.selected = (ui.selected + dir).coerceIn(0, ui.lights.lastIndex)
+    /** Moves the selection one tile sideways ([dx]) or one row up/down ([dy]) in the tile grid. */
+    private fun moveSelection(dx: Int, dy: Int) {
+        val count = ui.lights.size
+        if (count == 0) return
+        val columns = ui.columns
+        val current = ui.selected.coerceIn(0, count - 1)
+        var target = current
+        if (dx != 0) {
+            val next = current + dx
+            if (next in 0 until count && next / columns == current / columns) target = next
+        }
+        if (dy != 0) {
+            val next = current + dy * columns
+            target = when {
+                next in 0 until count -> next
+                // The last row may be shorter: going down from above its end lands on its last tile.
+                dy > 0 && (count - 1) / columns > current / columns -> count - 1
+                else -> current
+            }
+        }
+        ui.selected = target
     }
 
     private fun startHold(dir: Int) {
@@ -456,8 +473,9 @@ class LightBarService : AccessibilityService(), HaClient.Listener {
     /** Re-reads settings so changes apply the next time the overlay opens. */
     private fun loadConfig() {
         refs = prefs.lights
-        ui.layout = prefs.layout
-        ui.align = prefs.align
+        ui.anchor = prefs.anchor
+        ui.square = prefs.cardStyle == CardStyle.SQUARE
+        ui.perRow = prefs.perRow
         ui.edgeGap = prefs.edgeGap
         ui.message = when {
             prefs.url.isBlank() || prefs.token.isBlank() -> "Open the LightBar app to connect Home Assistant"

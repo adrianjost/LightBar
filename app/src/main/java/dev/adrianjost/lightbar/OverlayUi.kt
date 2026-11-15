@@ -40,6 +40,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -56,6 +57,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -74,12 +76,18 @@ class OverlayUiState {
     var selected by mutableIntStateOf(0)
     var controlling by mutableStateOf(false)
     var param by mutableStateOf(Param.BRIGHTNESS)
-    var layout by mutableStateOf(BarLayout.SIDEBAR)
-    var align by mutableStateOf(BarAlign.CENTER)
+    var anchor by mutableStateOf(Anchor.RIGHT)
+    var square by mutableStateOf(false)
+    /** Tiles per row as chosen in settings; 0 means all in one row. */
+    var perRow by mutableIntStateOf(1)
     var edgeGap by mutableIntStateOf(24)
     /** Shown instead of the lights, e.g. when setup is incomplete. */
     var message by mutableStateOf<String?>(null)
     val shown = MutableTransitionState(false)
+
+    /** Number of tiles actually next to each other, given how many lights there are. */
+    val columns: Int
+        get() = (if (perRow == 0) lights.size else minOf(perRow, lights.size)).coerceAtLeast(1)
 }
 
 @Composable
@@ -89,47 +97,50 @@ fun Label(
     color: Color,
     modifier: Modifier = Modifier,
     weight: FontWeight = FontWeight.Normal,
+    maxLines: Int = 1,
+    align: TextAlign = TextAlign.Start,
 ) {
     BasicText(
         text = text,
         modifier = modifier,
-        style = TextStyle(color = color, fontSize = size, fontWeight = weight),
-        maxLines = 1,
+        style = TextStyle(color = color, fontSize = size, fontWeight = weight, textAlign = align),
+        maxLines = maxLines,
         overflow = TextOverflow.Ellipsis,
     )
 }
 
 @Composable
 fun LightBarOverlay(ui: OverlayUiState) {
-    val sidebar = ui.layout != BarLayout.BOTTOM
-    val left = ui.layout == BarLayout.LEFT_SIDEBAR
+    val anchor = ui.anchor
     val slide = spring<IntOffset>(dampingRatio = 0.82f, stiffness = 520f)
+    // The panel slides in from, and back out to, the nearest edge: top or bottom for the six
+    // positions along those edges, the side for the two side centres.
+    val fromSide = anchor.row == 1
+    val towardsStart = if (fromSide) anchor.col == 0 else anchor.row == 0
+    val offset = { size: Int -> if (towardsStart) -size / 2 else size / 2 }
     Box(
         modifier = Modifier.fillMaxSize().padding(ui.edgeGap.dp),
-        contentAlignment = when (ui.align) {
-            BarAlign.START -> if (left) Alignment.TopStart else if (sidebar) Alignment.TopEnd else Alignment.BottomStart
-            BarAlign.CENTER -> if (left) Alignment.CenterStart else if (sidebar) Alignment.CenterEnd else Alignment.BottomCenter
-            BarAlign.END -> if (left) Alignment.BottomStart else Alignment.BottomEnd
-        },
+        contentAlignment = BiasAlignment(anchor.col - 1f, anchor.row - 1f),
     ) {
         AnimatedVisibility(
             visibleState = ui.shown,
             enter = fadeIn(tween(160)) +
-                if (sidebar) slideInHorizontally(slide) { if (left) -it / 2 else it / 2 } else slideInVertically(slide) { it / 2 },
+                if (fromSide) slideInHorizontally(slide, offset) else slideInVertically(slide, offset),
             exit = fadeOut(tween(160)) +
-                if (sidebar) slideOutHorizontally(tween(200)) { if (left) -it / 2 else it / 2 } else slideOutVertically(tween(200)) { it / 2 },
+                if (fromSide) slideOutHorizontally(tween(200), offset) else slideOutVertically(tween(200), offset),
         ) {
-            Panel(ui, sidebar)
+            Panel(ui)
         }
     }
 }
 
 @Composable
-private fun Panel(ui: OverlayUiState, sidebar: Boolean) {
+private fun Panel(ui: OverlayUiState) {
     val shape = RoundedCornerShape(28.dp)
+    val square = ui.square
+    val columns = ui.columns
     Column(
         modifier = Modifier
-            .then(if (sidebar) Modifier.width(300.dp) else Modifier)
             .clip(shape)
             .background(Color(0xDB101418))
             .border(1.dp, Color.White.copy(alpha = 0.10f), shape)
@@ -142,37 +153,48 @@ private fun Panel(ui: OverlayUiState, sidebar: Boolean) {
             return@Column
         }
 
-        if (sidebar) {
-            Column(verticalArrangement = Arrangement.spacedBy(TileGap)) {
-                ui.lights.forEachIndexed { i, light ->
-                    key(light.id) {
-                        LightTile(light, i == ui.selected, ui.controlling, ui.param, card = false, Modifier.fillMaxWidth())
-                    }
-                }
-            }
-        } else {
-            val count = ui.lights.size.coerceAtLeast(1)
-            val available = LocalConfiguration.current.screenWidthDp.dp -
-                (ui.edgeGap.dp + PanelPadding) * 2 - TileGap * (count - 1)
-            // Compact, roughly square cards instead of wide rows.
-            val tileWidth: Dp = (available / count).coerceAtMost(132.dp)
-            Row(horizontalArrangement = Arrangement.spacedBy(TileGap), verticalAlignment = Alignment.Bottom) {
-                ui.lights.forEachIndexed { i, light ->
-                    key(light.id) {
-                        LightTile(light, i == ui.selected, ui.controlling, ui.param, card = true, Modifier.width(tileWidth))
+        // Tiles keep their natural size unless a full row would not fit on screen.
+        val available = LocalConfiguration.current.screenWidthDp.dp -
+            (ui.edgeGap.dp + PanelPadding) * 2 - TileGap * (columns - 1)
+        val tileWidth: Dp = (available / columns).coerceAtMost(if (square) 132.dp else 276.dp)
+        Column(
+            verticalArrangement = Arrangement.spacedBy(TileGap),
+            // A shorter last row lines up with the side of the screen the panel is anchored to.
+            horizontalAlignment = when (ui.anchor.col) {
+                0 -> Alignment.Start
+                1 -> Alignment.CenterHorizontally
+                else -> Alignment.End
+            },
+        ) {
+            ui.lights.withIndex().chunked(columns).forEach { row ->
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(TileGap),
+                    // A tile that expands in adjust mode grows away from the screen edge.
+                    verticalAlignment = if (ui.anchor.row == 0) Alignment.Top else Alignment.Bottom,
+                ) {
+                    row.forEach { (i, light) ->
+                        key(light.id) {
+                            LightTile(light, i == ui.selected, ui.controlling, ui.param, card = square, Modifier.width(tileWidth))
+                        }
                     }
                 }
             }
         }
 
         val canWarm = ui.lights.getOrNull(ui.selected)?.supportsTemp == true
+        // A single column of square cards is too narrow for one line, so the hint is stacked there.
+        val narrow = square && columns == 1
+        val gap = if (narrow) "\n" else "   ·   "
         val hint = when {
-            !ui.controlling -> "OK  Adjust   ·   Hold OK  On/Off"
-            canWarm -> "◀ ▶  Adjust   ·   ▲ ▼  Warmth   ·   OK  Done"
-            else -> "◀ ▶  Adjust   ·   OK  Done   ·   Hold OK  On/Off"
+            !ui.controlling -> "OK  Adjust${gap}Hold OK  On/Off"
+            canWarm -> "◀ ▶  Adjust$gap▲ ▼  Warmth${gap}OK  Done"
+            else -> "◀ ▶  Adjust${gap}OK  Done${gap}Hold OK  On/Off"
         }
         Crossfade(hint, animationSpec = tween(180), label = "hint") {
-            Label(it, 11.sp, Color.White.copy(alpha = 0.55f), Modifier.padding(top = 10.dp, bottom = 2.dp))
+            Label(
+                it, 11.sp, Color.White.copy(alpha = 0.55f), Modifier.padding(top = 10.dp, bottom = 2.dp),
+                maxLines = 3, align = TextAlign.Center,
+            )
         }
     }
 }
