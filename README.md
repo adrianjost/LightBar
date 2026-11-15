@@ -1,111 +1,55 @@
-<div align="center">
+# LightBar
 
- <a href="https://github.com/Trooped/QuickBars">
-        <img src="assets/icon.svg" alt="QuickBars App Screenshot" width="300"/>
-  </a>
-  <h1>QuickBars for Home Assistant</h1>
-  
-  <p>
-    Home Assistant on your Android TV!
-  </p>
+A small Android TV / Google TV overlay for dimming a handful of Home Assistant lights with the D-Pad of your remote, without leaving what you are watching.
 
-<p>
-    <a href="https://play.google.com/store/apps/details?id=dev.trooped.tvquickbars">
-      <img src="https://img.shields.io/badge/Google_Play-414141?style=for-the-badge&logo=googleplay&logoColor=white" alt="Get it on Google Play" height="70" />
-    </a>
-    &nbsp;&nbsp;
-    <a href="https://quickbars.app/">
-      <img src="https://img.shields.io/badge/Official_Website-202020?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbDpzcGFjZT0icHJlc2VydmUiIHdpZHRoPSI1MTJtbSIgaGVpZ2h0PSI1MTJtbSIgdmlld0JveD0iMCAwIDUxMiA1MTIiPjxwYXRoIGQ9Ik0yNTAgMTA3LjM3M2MtMS40NjYuMDA0LTMuMzE3LjU4NC00LjYyNiAxLjI4NS0uMzA4LjE2NS0yLjI5IDEuNjc5LTQuOTc2IDMuOThMOTkuODMgMjMzYy0uMDEuMDE0LTIuMDA5IDEuOTk5LTIuODMgNC4yMTgtLjY1OCAxLjc3OC0uNDg4IDQuMTk0LS4yODEgNC43ODIuMzUyIDEuMDAyLjY5NSAxLjU4MSAxLjI4MSAyLjQuNzM0IDEuMDI3IDIuMDc1IDEuODMgMy4zODQgMi4zNTIgMy41MDggMS40MDMgOC41MDQgMS4xNjcgMTAuMjEzIDEuMjQ4SDEyNHY3N2wuMzE0IDcyLjgxLjIzNiAyLjE5LjIyNyAxYy4wNzIuMTU5LjU5MSAxLjM0My42MDMgMS4zNzJsLjQ5NC43OTNzLjY1NC43OTIgMS4wMTUgMS4wOTFjLjQ1NC4zNzkuNDIxLjM2MSAxLjkzOCAxLjc0NGwyLjE3MyAxLjUzOGMuMTUuMDc4LjIzLjExLjM0NS4xNTkuMTA3LjA0Ni4yNDguMTExLjQuMTU4bDEuOC42NTYuNDU1LjE2Ny43NTMuMjEzIDExMy4yMzYuNDI5IDExNS0uMzU4IDMuNS0xLjU1OWMxLjkyNS0uODU3IDQuNC0yLjU2NyA1LjUtMy44bDItMi4yNDQuMjc1LTc1LjU3Mi4yNzUtNzUuNTczLS4wMjctMy4yMTRIMzg0YzQuMTk2IDAgOS42OTktLjAyMiAxMS4zNDMtLjM3NEwzOTcgMjQ2bDIuNjQ0LTJjLjk1My0uNzIgMi4xLTMuNTM4IDEuNzUzLTUuMzlMNDAxIDIzN2MtLjQ5Mi0uNzM1LTEuMi0yLjAzMS0yLTMtMjAuODU3LTI1LjI1OC0xNDMuMTkyLTEyNC43Ny0xNDYuMzc0LTEyNi4yNTgtMS4wNTEtLjQ5Mi0xLjI4MS0uMzUxLTIuNjI2LS4zNyIgc3R5bGU9ImRpc3BsYXk6aW5saW5lO2ZpbGw6IzgwZDJlOTtmaWxsLW9wYWNpdHk6MSIvPjxyZWN0IHdpZHRoPSIxMjMuMDA5IiBoZWlnaHQ9IjM4IiB4PSIyMjIuMDE3IiB5PSIzMTIuOTkxIiByeD0iMTYuMzYxIiByeT0iMTkiIHN0eWxlPSJkaXNwbGF5OmlubGluZTtvcGFjaXR5OjE7ZmlsbDojY2ZlOGYwO2ZpbGwtb3BhY2l0eToxO3N0cm9rZTpub25lO3N0cm9rZS13aWR0aDouMjMzNjM1O3N0cm9rZS1kYXNoYXJyYXk6bm9uZSIgdHJhbnNmb3JtPSJzY2FsZSguOTk5OTMgMSlza2V3WSguNjk5KSIvPjxyZWN0IHdpZHRoPSIxNDIuODUxIiBoZWlnaHQ9IjM4IiB4PSIyMjIuMDEyIiB5PSIyNTguMTc2IiByeD0iMTkiIHJ5PSIxOSIgc3R5bGU9ImRpc3BsYXk6aW5saW5lO29wYWNpdHk6MTtmaWxsOiNjZmU4ZjA7ZmlsbC1vcGFjaXR5OjE7c3Ryb2tlOm5vbmU7c3Ryb2tlLXdpZHRoOi4yNTE3NzQ7c3Ryb2tlLWRhc2hhcnJheTpub25lIiB0cmFuc2Zvcm09InNjYWxlKC45OTk5NCAxKXNrZXdZKC42MDIpIi8+PHJlY3Qgd2lkdGg9Ijg0IiBoZWlnaHQ9IjMzNSIgeD0iMzE4LjQxMyIgeT0iODkuMDY5IiByeD0iMTAiIHJ5PSI5LjUxNyIgc3R5bGU9ImRpc3BsYXk6aW5saW5lO29wYWNpdHk6Ljg1O21peC1ibGVuZC1tb2RlOmxpZ2h0ZW47ZmlsbDojZjFmNGY1O2ZpbGwtb3BhY2l0eToxO3N0cm9rZTpub25lO3N0cm9rZS13aWR0aDouMjU4O3N0cm9rZS1kYXNoYXJyYXk6bm9uZSIvPjxwYXRoIGQ9Im0zMTguNDEzIDE2MS4zMjYuMDE3IDI0Ny43NzQtMTMuNDE4LjA0MkwzMDUgMTUwLjE3NnoiIHN0eWxlPSJkaXNwbGF5OmlubGluZTtvcGFjaXR5Oi4zNTttaXgtYmxlbmQtbW9kZTpub3JtYWw7ZmlsbDojNWZiY2QxO3N0cm9rZS13aWR0aDouMjU3NjYzIi8+PC9zdmc+" alt="Official Website" height="70" />
-    </a>
-  </p>
-  
-  
-<p>
-  <img src="https://img.shields.io/badge/Downloads-17k%2B-blue?style=flat&logo=googleplay&logoColor=white" alt="Play Store Downloads" />
-  <a href="https://github.com/Trooped/QuickBars/graphs/contributors">
-    <img src="https://img.shields.io/github/contributors/Trooped/QuickBars" alt="contributors" />
-  </a>
-  <a href="https://github.com/Trooped/QuickBars/commits/main">
-    <img src="https://img.shields.io/github/last-commit/Trooped/QuickBars" alt="last update" />
-  </a>
-  <a href="https://github.com/Trooped/QuickBars/network/members">
-    <img src="https://img.shields.io/github/forks/Trooped/QuickBars" alt="forks" />
-  </a>
-  <a href="https://github.com/Trooped/QuickBars/stargazers">
-    <img src="https://img.shields.io/github/stars/Trooped/QuickBars" alt="stars" />
-  </a>
-  <a href="https://github.com/Trooped/QuickBars/issues/">
-    <img src="https://img.shields.io/github/issues/Trooped/QuickBars" alt="open issues" />
-  </a>
-  <a href="https://github.com/Trooped/QuickBars/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/Trooped/QuickBars.svg" alt="license" />
-  </a>
-</p>
+LightBar is a heavily reduced fork of [QuickBars for Home Assistant](https://github.com/Trooped/QuickBars) by Trooped. It keeps the idea (an accessibility-service overlay talking to Home Assistant over WebSocket) and drops everything else: other entity types, multiple bars, camera PiP, notifications, backups, in-app purchases. It uses its own application ID (`dev.adrianjost.lightbar`), so it installs next to QuickBars.
 
-</div>
+## Controls
 
+Press your trigger button to open the overlay.
 
-# :notebook_with_decorative_cover: Table of Contents
+| Mode | Key | Action |
+| --- | --- | --- |
+| Browse | D-Pad | Choose a light (Up/Down in the sidebar, Left/Right in the bottom bar) |
+| Browse | OK | Adjust the selected light |
+| Browse | Left/Right (sidebar only) | Shortcut: start adjusting brightness right away |
+| Adjust | Left/Right | Tap: 1 % steps. Hold: keeps going, slow at the low end and fast higher up, stops at 1 % |
+| Adjust | Up/Down | Switch between brightness and warmth (if the light supports color temperature) |
+| Adjust | OK or Back | Done, back to choosing a light |
+| Both | Hold OK | Turn the light on or off (tapping Left at 1 % also turns it off) |
+| Browse | Back or trigger button | Close |
 
-- [Current Version](#bookmark-current-version)
-- [About the Project](#star2-about-the-project)
-- [Contributing](#wave-contributing)
-- [License](#warning-license)
-- [Contact](#handshake-contact)
-- [Community & Support](#speech_balloon-community--support)
+The overlay closes by itself after 10 seconds without input.
 
-## :bookmark: Current Version
+## Setup
 
-**Google Play Store:** `v1.3.3`  
-**GitHub Main Branch:** `v1.3.3`  
+1. Install the APK (`adb install app/build/outputs/apk/release/app-release.apk`) and open **LightBar**.
+2. **Set up with your phone**: scan the QR code, enter your Home Assistant address and a long-lived access token (Home Assistant → your profile → Security). The same page lets you give the chosen lights short names later.
+3. **Accessibility service**: enable LightBar. If your TV hides that settings page, use
+   `adb shell settings put secure enabled_accessibility_services dev.adrianjost.lightbar/dev.adrianjost.lightbar.LightBarService`
+   followed by `adb shell settings put secure accessibility_enabled 1`.
+4. **Trigger button** and **gesture**: pick the remote button that opens the overlay. With *Single press* the button is taken over completely; with *Double press* and *Long press* the app underneath still sees the key.
+5. Under **Appearance** pick the layout (right sidebar, left sidebar or bottom bar with compact cards), its position along that edge and the gap from the screen edge. Then add your **lights**. Each shown light has its own buttons: **Move** (OK to pick it up, Up/Down to carry it, OK to drop), **Updates** (how often commands may be sent while sliding: Live, every 1 s or every 3 s, for devices that cannot take frequent changes) and **Remove**.
 
-## :star2: About the Project
+## Build
 
-https://github.com/user-attachments/assets/51bb3ac7-a18a-4b1e-9c0f-6ec7e389e779
+Needs JDK 17 and the Android SDK (platform 36).
 
-QuickBars was born out of a simple need: making smart home control accessible on the big screen. Originally developed to help my father interact with Home Assistant via larger, more readable controls, it has grown into a powerful tool downloaded by over 17,000 users worldwide.
+```
+./gradlew assembleRelease
+```
 
-It provides a fast, dynamic overlay that works over any app on your TV, ensuring your most-used Home Assistant actions are always just a click or two away.
+## Code map
 
-### Key Capabilities:
-- **Fast Overlays**: Control entities via remote-accessible sidebars.
-- **Key Mapping**: Map physical remote keys (single/double/long press) to HA actions.
-- **Real-time Updates**: Local connection via Home Assistant WebSocket API.
-- **Camera PiPs**: Camera PiP overlay for live viewing while you're watching TV.
-- **Rich Notifications**: TV-optimized alerts with images and action buttons.
+Everything lives in `app/src/main/java/dev/adrianjost/lightbar`:
 
-For a full feature breakdown and user guides, visit the [Official Website](https://quickbars.app/).
+- `LightBarService.kt`: accessibility service: trigger button, D-Pad handling, overlay window, commands
+- `OverlayUi.kt`: the overlay (Jetpack Compose)
+- `HaClient.kt`: Home Assistant WebSocket client
+- `SettingsActivity.kt`: the single settings screen
+- `PhoneSetupServer.kt`: local web page + QR code for entering URL and token on a phone
+- `Model.kt`: light model and stored settings
 
-## :wave: Contributing
+## License
 
-Please visit [Contributing](CONTRIBUTING.md) for instructions on how to contribute to the project.
-
-## :speech_balloon: Community & Support
-Have a question, a feature idea, or need help? Please use our Discussions page!
-
-> **Rule of Thumb:** For 🐛 **Bugs**, please [open an issue](https://github.com/Trooped/QuickBars/issues). For ✨ **Features** or 🙋 **Questions**, head to [Discussions](https://github.com/Trooped/QuickBars/discussions).
-
-1. Check First: Check if your idea is already an existing feature in the [guide](https://quickbars.app/guide), or if your problem already has a solution in [troubleshooting](https://quickbars.app/troubleshooting).
-2. Search Second: Search if your question or idea has already been discussed in the [discussions page](https://github.com/Trooped/QuickBars/discussions).
-3. Pick a Category:
-   - Q&A: For "How do I..." questions or troubleshooting.
-   - Ideas: For suggesting new features or improvements.
-   - General: For everything else.
-4. Join In: Upvote ideas you like to help us prioritize what to build next!
-
-> [!IMPORTANT]
-> **Rules of Engagement:** To keep this project manageable alongside my full-time work and studies, all communications **must be in English**. Please ensure you fill out the provided templates completely. Non-compliant or non-English issues/discussions will be closed immediately.
-
-## :warning: License
-
-Distributed under the GNU General Public License v3.0 (GPLv3). See `LICENSE` for more information.
-
-
-## :handshake: Contact
-
-Omri Peretz - [Official Website](https://omriperetz.dev)
-
-Project Link: [https://github.com/Trooped/QuickBars](https://github.com/Trooped/QuickBars)
-
-* **Found a Bug?** Please [open an issue](https://github.com/Trooped/QuickBars/issues).
-* **Have an Idea?** Start a [Discussion](https://github.com/Trooped/QuickBars/discussions/categories/ideas).
+GPL-3.0, like the project it is forked from. See [LICENSE](LICENSE).

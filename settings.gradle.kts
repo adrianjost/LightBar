@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "HAQuickBars"
+rootProject.name = "LightBar"
 include(":app")
  
