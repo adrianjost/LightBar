@@ -57,6 +57,8 @@ class LightBarService : AccessibilityService(), HaClient.Listener {
     /** When we last sent a slider value for a light / last heard about it (uptime millis). */
     private val lastSend = HashMap<String, Long>()
     private val stateTime = HashMap<String, Long>()
+    /** Navigation keys whose key-down the overlay consumed and that have not been released yet. */
+    private val ownedKeys = HashSet<Int>()
     /** Key that was just recorded as trigger; its remaining events are swallowed until release. */
     private var swallowKey = 0
     /** Direction of the Left/Right key currently held down, 0 if none. */
@@ -118,7 +120,15 @@ class LightBarService : AccessibilityService(), HaClient.Listener {
         val visible = overlay != null && !hiding
 
         if (visible && code in NAV_KEYS) {
+            if (event.action == KeyEvent.ACTION_DOWN) ownedKeys.add(code) else ownedKeys.remove(code)
             handleOverlayKey(event)
+            return true
+        }
+        // The overlay closed while one of its keys was still down (Back closes it on key-down).
+        // Swallow the rest of that press, or the app underneath would see a lone key-up and act
+        // on it, e.g. YouTube leaving the video on Back.
+        if (code in ownedKeys) {
+            if (event.action == KeyEvent.ACTION_UP) ownedKeys.remove(code)
             return true
         }
         if (code != 0 && code == prefs.triggerKey) return handleTrigger(event)
