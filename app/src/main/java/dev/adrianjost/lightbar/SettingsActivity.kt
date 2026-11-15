@@ -77,6 +77,7 @@ class SettingsActivity : ComponentActivity(), HaClient.Listener {
     private var layout by mutableStateOf(BarLayout.SIDEBAR)
     private var align by mutableStateOf(BarAlign.CENTER)
     private var edgeGap by mutableIntStateOf(24)
+    private var autoClose by mutableIntStateOf(10)
     private var gesture by mutableStateOf(Gesture.HOLD)
     private var triggerKey by mutableIntStateOf(0)
     private var capturing by mutableStateOf(false)
@@ -98,6 +99,7 @@ class SettingsActivity : ComponentActivity(), HaClient.Listener {
         layout = prefs.layout
         align = prefs.align
         edgeGap = prefs.edgeGap
+        autoClose = prefs.autoCloseSeconds
         gesture = prefs.gesture
         triggerKey = prefs.triggerKey
         setContent { Screen() }
@@ -319,6 +321,11 @@ class SettingsActivity : ComponentActivity(), HaClient.Listener {
                     prefs.edgeGap = edgeGap
                 }
 
+                Choice("Close when idle", AUTO_CLOSE.map { it.second }, AUTO_CLOSE.indexOfFirst { it.first == autoClose }) {
+                    autoClose = AUTO_CLOSE[it].first
+                    prefs.autoCloseSeconds = autoClose
+                }
+
                 Section("Shown in the overlay")
                 if (selected.isEmpty()) Note("No lights yet. Add some from the list below.")
                 selected.forEach { ref -> key(ref.id) { ShownLight(ref) } }
@@ -354,8 +361,9 @@ class SettingsActivity : ComponentActivity(), HaClient.Listener {
                             "OK or Back: done\n\n" +
                             "Updates\n\n" +
                             "Live suits normal lights. For devices that cannot take frequent changes, " +
-                            "pick After …: the value is sent once it has rested that long, or at once " +
-                            "when you confirm with OK or close the overlay."
+                            "pick After …: the value is sent once it has rested that long, or earlier " +
+                            "when you confirm with OK or close the overlay, but never sooner than that " +
+                            "time after the previous command."
                     )
                 }
             }

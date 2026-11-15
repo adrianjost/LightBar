@@ -47,6 +47,8 @@ class LightBarService : AccessibilityService(), HaClient.Listener {
     /** Lights with a changed value that is waiting for its next allowed send slot. */
     private val pendingSends = HashMap<String, Param>()
     private val sendTimers = HashMap<String, Runnable>()
+    /** When any command (slider value or on/off) last went to a light; used to space commands. */
+    private val lastCommand = HashMap<String, Long>()
 
     private var overlay: View? = null
     private var overlayOwner: OverlayLifecycleOwner? = null
@@ -271,27 +273,42 @@ class LightBarService : AccessibilityService(), HaClient.Listener {
      * Schedules sending the light's current value, depending on its update setting:
      *  - live: right away if the last command is old enough, otherwise once the interval has passed;
      *  - settled: only after the value has not changed for the chosen time, so the device gets
-     *    one command. Confirming with OK/Back or closing the overlay sends it at once ([flushSends]).
+     *    one command. Confirming with OK/Back or closing the overlay skips the rest of that wait
+     *    ([flushSends]).
+     * In both cases two commands to one light are never closer together than its interval.
      */
     private fun queueSend(id: String, param: Param) {
         val live = UPDATE_RATES[0].first
         val interval = refs.firstOrNull { it.id == id }?.intervalMs ?: live
         pendingSends[id] = param
-        val wait = if (interval <= live) {
-            if (id in sendTimers) return
-            (lastSend[id] ?: 0) + interval - SystemClock.uptimeMillis()
+        if (interval <= live) {
+            if (id !in sendTimers) schedule(id, untilAllowed(id, interval))
         } else {
-            sendTimers.remove(id)?.let { handler.removeCallbacks(it) }
-            interval.toLong()
+            // Restart the rest period; it is at least as long as the spacing to the last command.
+            schedule(id, maxOf(interval.toLong(), untilAllowed(id, interval)))
         }
-        val timer = Runnable { send(id) }
-        sendTimers[id] = timer
-        handler.postDelayed(timer, wait.coerceAtLeast(0))
     }
 
-    /** Sends every value that is still waiting, without waiting any longer. */
+    /** Milliseconds until the light may receive its next command. */
+    private fun untilAllowed(id: String, interval: Int): Long =
+        ((lastCommand[id] ?: 0) + interval - SystemClock.uptimeMillis()).coerceAtLeast(0)
+
+    private fun schedule(id: String, delay: Long) {
+        sendTimers.remove(id)?.let { handler.removeCallbacks(it) }
+        val timer = Runnable { send(id) }
+        sendTimers[id] = timer
+        handler.postDelayed(timer, delay)
+    }
+
+    /**
+     * Sends every waiting value as early as its light allows: now, or as soon as the interval
+     * since that light's last command has passed. This also works after the overlay is closed.
+     */
     private fun flushSends() {
-        pendingSends.keys.toList().forEach { send(it) }
+        pendingSends.keys.toList().forEach { id ->
+            val interval = refs.firstOrNull { it.id == id }?.intervalMs ?: UPDATE_RATES[0].first
+            schedule(id, untilAllowed(id, interval))
+        }
     }
 
     private fun send(id: String) {
@@ -300,6 +317,7 @@ class LightBarService : AccessibilityService(), HaClient.Listener {
         val ha = client ?: return
         val light = ui.lights.firstOrNull { it.id == id } ?: return
         lastSend[id] = SystemClock.uptimeMillis()
+        lastCommand[id] = SystemClock.uptimeMillis()
         lock(id, 2500)
         val data = JSONObject().put("transition", 0.2)
         when {
@@ -323,6 +341,7 @@ class LightBarService : AccessibilityService(), HaClient.Listener {
         ui.lights[ui.selected] = light.copy(on = on, brightness = if (on && light.brightness == 0f) 1f else light.brightness)
         lock(light.id, 800)
         lastSend.remove(light.id)
+        lastCommand[light.id] = SystemClock.uptimeMillis()
         client?.callService(if (on) "turn_on" else "turn_off", light.id)
     }
 
@@ -430,7 +449,8 @@ class LightBarService : AccessibilityService(), HaClient.Listener {
 
     private fun scheduleAutoHide() {
         handler.removeCallbacks(autoHide)
-        handler.postDelayed(autoHide, 10_000)
+        val seconds = prefs.autoCloseSeconds
+        if (seconds > 0) handler.postDelayed(autoHide, seconds * 1000L)
     }
 
     /** Re-reads settings so changes apply the next time the overlay opens. */

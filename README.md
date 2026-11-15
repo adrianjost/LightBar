@@ -19,7 +19,7 @@ Press your trigger button to open the overlay.
 | Both | Hold OK | Turn the light on or off (tapping Left at 1 % also turns it off) |
 | Browse | Back or trigger button | Close |
 
-The overlay closes by itself after 10 seconds without input.
+The overlay closes by itself after 10 seconds without input (configurable under Appearance: 5 s, 10 s, 30 s or never).
 
 ## Setup
 
@@ -29,7 +29,7 @@ The overlay closes by itself after 10 seconds without input.
    `adb shell settings put secure enabled_accessibility_services dev.adrianjost.lightbar/dev.adrianjost.lightbar.LightBarService`
    followed by `adb shell settings put secure accessibility_enabled 1`.
 4. **Trigger button** and **gesture**: pick the remote button that opens the overlay. With *Single press* the button is taken over completely; with *Double press* and *Long press* the app underneath still sees the key.
-5. Under **Appearance** pick the layout (right sidebar, left sidebar or bottom bar with compact cards), its position along that edge and the gap from the screen edge. Then add your **lights**. Each shown light has its own buttons: **Move** (OK to pick it up, Up/Down to carry it, OK to drop), **Updates** (Live sends while you slide; After 0.5 s / 1 s / 3 s waits until the value has rested that long, or until you confirm with OK or close the overlay, so slow devices get a single command) and **Remove**.
+5. Under **Appearance** pick the layout (right sidebar, left sidebar or bottom bar with compact cards), its position along that edge and the gap from the screen edge. Then add your **lights**. Each shown light has its own buttons: **Move** (OK to pick it up, Up/Down to carry it, OK to drop), **Updates** (Live sends while you slide; After 0.5 s / 1 s / 3 s waits until the value has rested that long, or until you confirm with OK or close the overlay; two commands to a light are never closer together than that time, the last one is delayed if needed) and **Remove**.
 
 ## Build
 

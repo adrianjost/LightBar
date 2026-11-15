@@ -14,6 +14,9 @@ enum class BarAlign { START, CENTER, END }
 /** Distance between the panel and the screen edge, in dp. */
 val EDGE_GAPS = listOf(0 to "None", 12 to "Small", 24 to "Medium", 48 to "Large")
 
+/** Seconds without input after which the overlay closes itself; 0 keeps it open. */
+val AUTO_CLOSE = listOf(5 to "5 s", 10 to "10 s", 30 to "30 s", 0 to "Never")
+
 enum class Gesture(val label: String) { PRESS("Single press"), DOUBLE("Double press"), HOLD("Long press") }
 
 enum class Param { BRIGHTNESS, WARMTH }
@@ -115,6 +118,10 @@ class Prefs(context: Context) {
     var edgeGap: Int
         get() = sp.getInt("edgeGap", 24)
         set(v) = sp.edit().putInt("edgeGap", v).apply()
+
+    var autoCloseSeconds: Int
+        get() = sp.getInt("autoClose", 10)
+        set(v) = sp.edit().putInt("autoClose", v).apply()
 
     /** Android key code of the remote button that opens the overlay, 0 if unset. */
     var triggerKey: Int
